@@ -1,5 +1,9 @@
 const { Builder, By, Capabilities, until } = require("selenium-webdriver");
 const fs = require("fs");
+const path = require("path");
+const https = require("https"); // https 모듈 불러오기
+const axios = require("axios");
+const appRoot = require("app-root-path");
 
 let crawlData = {
   a: `__AUTO__`, //업체상품코드
@@ -14,14 +18,14 @@ let crawlData = {
   j: ``, //카테고리코드
   k: ``, //사용자분류명
   l: ``, //한줄메모
-  m: ``, //시중가
-  n: ``, //원가
-  o: ``, //표준공급가
+  m: 0, //시중가
+  n: 0, //원가
+  o: 0, //표준공급가
   p: ``, //판매가
-  q: ``, //배송방법
-  r: ``, //배송비
-  s: ``, //과세여부
-  t: ``, //판매수량
+  q: `무료`, //배송방법
+  r: 0, //배송비
+  s: `Y`, //과세여부
+  t: 999, //판매수량
   u: ``, //이미지1URL
   v: ``, //이미지2URL
   w: ``, //이미지3URL
@@ -97,12 +101,17 @@ async function generate(url, driver) {
     // 웹 페이지 열기
     await driver.get(`${url}`);
 
+    // sleep();
     // 상품명 가져오기
-    const b = await driver.wait(until.elementLocated(By.css("fieldset > div h3")), 10000);
+    const b = await driver.wait(
+      until.elementLocated(By.css("fieldset > div h3")),
+      10000
+    );
     const bt = await b.getText();
+
     const modelName = shuffleString(bt);
     const brandName = "꾸러미배송 협력사";
-  
+    let categoryCode = "";
 
     // 상품명 랜덤 재배치
     function shuffleString(targetText) {
@@ -110,6 +119,8 @@ async function generate(url, driver) {
       return [...text].sort(() => Math.random() - 0.5).join(" ");
     }
 
+    // sleep();
+    // 카테고리 코드 가져오기 시작
     let categoriesList = [];
     const categories = await driver.wait(
       until.elementsLocated(By.css("._1_FPHJbv10")),
@@ -120,38 +131,80 @@ async function generate(url, driver) {
       categoriesList.push(await category.getText());
     }
 
-      const categoryCodeExcel = fs.readFileSync(
-        "./excel/categories.csv",
-        "utf-8"
-      );
-      let categoryCodeList = categoryCodeExcel.split(/\n|\r/);
-      categoryCodeList.map((_, i) => {
-        if (categoryCodeList[i] == "") {
-          categoryCodeList.splice(i, 1);
-          i--;
-        }
-      });
-    categoryCodeList.map((category, i) => {
-      const splitedList = category.split(",");
-      splitedList.map((_, i) => {
-        if (_ === "") {
-          splitedList.splice(i, 1);
-          i--;
-        }
-      });
-      console.log(splitedList)
-    })
+    const categoryCodeExcel = fs.readFileSync(
+      "./excel/categories.csv",
+      "utf-8"
+    );
 
-    // 데이터에 상품명 넣기
+    let categoryCodeList = categoryCodeExcel.split(/\n|\r/);
+    categoryCodeList.map((_, i) => {
+      if (categoryCodeList[i] == "") {
+        categoryCodeList.splice(i, 1);
+        i--;
+      }
+    });
+
+    let splitedList = categoryCodeList.filter((category, i) => {
+      return category.split(",");
+    });
+
+    splitedList.map((list, i) => {
+      if (list.includes(categoriesList[categoriesList.length - 1])) {
+        const listArr = list.split(",");
+        const targetCode = listArr[listArr.length - 1];
+        categoryCode = targetCode;
+      }
+    });
+    // 카테고리 코드 가져오기 끝
+
+    // 상품 가격 가져오기
+    const priceTemp = await driver.wait(
+      until.elementLocated(By.css("._1LY7DqCnwR")),
+      10000
+    );
+    const price = await priceTemp.getText();
+
+    // 썸네일 이미지 소스 가져오기
+    const thumbnailImg = await driver.wait(
+      until.elementLocated(By.css(".bd_2DO68")),
+      10000
+    );
+    const thumbnailSrc = await thumbnailImg.getAttribute("src");
+
+    // 이미지 다운로드
+    const imageResponse = await axios.get(thumbnailSrc, {
+      responseType: "arraybuffer",
+      httpsAgent: new https.Agent({ rejectUnauthorized: false }), // SSL 인증서 검증 건너뛰기
+    });
+
+    // 이미지를 파일로 저장하기
+    const filename = `${Date.now()}.png`; // 파일명을 현재 시간으로 설정
+    const imagePath = `temp/${filename}`; // 이미지가 저장될 경로
+    fs.writeFileSync(imagePath, Buffer.from(imageResponse.data));
+
+    const rootPath = appRoot.toString();
+
+    // crawlData에 데이터 넣기
     crawlData.b = modelName;
     crawlData.c = brandName;
     crawlData.d = brandName;
     crawlData.f = modelName;
     crawlData.h = modelName;
-    
+    crawlData.j = categoryCode;
+    crawlData.p = price;
   } catch (error) {
     console.error("에러:", error);
     throw new Error("이미지 가져오기에 실패했습니다.");
+  }
+}
+
+// 슬립 펑션
+function sleep() {
+  const randomSec = Math.random() * (3 - 2 + 1) + 2;
+  let start = Date.now(),
+    now = start;
+  while (now - start < randomSec * 1000) {
+    now = Date.now();
   }
 }
 
@@ -161,7 +214,7 @@ async function generate(url, driver) {
 
 //   const brandName = `꾸러미배송 협력사`;
 
-//   
+//
 
 //   // 이미지 URL 가져오기
 //   // let imageURL = await imageElement.getAttribute("src");

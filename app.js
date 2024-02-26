@@ -5,7 +5,6 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const Jimp = require("jimp");
-const axios = require("axios");
 const multer = require("multer");
 const csv = require("csv-parser");
 const { createWorker } = require("tesseract.js");
@@ -46,14 +45,15 @@ app.post("/readcsv", upload.single("csvFile"), async (req, res) => {
     .withCapabilities(chromeCapabilities)
     .build();
 
-    await crawler.generate("https://smartstore.naver.com/richcommerce/products/9943371576", driver);
+  await crawler.generate(
+    "https://smartstore.naver.com/richcommerce/products/9943371576",
+    driver
+  );
 
   // URL을 비동기적으로 처리
   // for await (const url of urlList) {
   //   await crawler.generate(url, driver);
   // }
-
-
 });
 
 const PORT = process.env.PORT || 3000;
