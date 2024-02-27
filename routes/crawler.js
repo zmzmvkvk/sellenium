@@ -98,7 +98,6 @@ let crawlData = {
 
 async function generate(url, driver) {
   try {
-    // 웹 페이지 열기
     await driver.get(`${url}`);
 
     // sleep();
@@ -111,16 +110,10 @@ async function generate(url, driver) {
 
     const modelName = shuffleString(bt);
     const brandName = "꾸러미배송 협력사";
-    let categoryCode;
-
-    // 상품명 랜덤 재배치
-    function shuffleString(targetText) {
-      const text = targetText.split(" ");
-      return [...text].sort(() => Math.random() - 0.5).join(" ");
-    }
 
     // sleep();
     // 카테고리 코드 가져오기 시작
+    let categoryCode;
     let categoriesList = [];
     const categories = await driver.wait(
       until.elementsLocated(By.css("._1_FPHJbv10")),
@@ -164,7 +157,6 @@ async function generate(url, driver) {
     );
     const price = await priceTemp.getText();
     const splitedPrice = parseInt(price.replace(",", ""));
-
     // 상품 가격 가져오기 끝
 
     // 썸네일 가져오기 시작
@@ -228,6 +220,12 @@ async function generate(url, driver) {
     console.error("에러:", error);
     throw new Error("이미지 가져오기에 실패했습니다.");
   }
+}
+
+// 상품명 랜덤 재배치 펑션
+function shuffleString(targetText) {
+  const text = targetText.split(" ");
+  return [...text].sort(() => Math.random() - 0.5).join(" ");
 }
 
 // 슬립 펑션
