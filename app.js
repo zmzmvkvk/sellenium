@@ -13,7 +13,6 @@ const { Builder, By, Capabilities } = require("selenium-webdriver");
 
 // 파일 업로드를 위한 multer 미들웨어 설정
 const upload = multer({ dest: "uploads/" });
-
 app.use(express.static("public"));
 // JSON 파싱 미들웨어 등록
 app.use(bodyParser.json());

@@ -111,7 +111,7 @@ async function generate(url, driver) {
 
     const modelName = shuffleString(bt);
     const brandName = "꾸러미배송 협력사";
-    let categoryCode = "";
+    let categoryCode;
 
     // 상품명 랜덤 재배치
     function shuffleString(targetText) {
@@ -152,37 +152,58 @@ async function generate(url, driver) {
       if (list.includes(categoriesList[categoriesList.length - 1])) {
         const listArr = list.split(",");
         const targetCode = listArr[listArr.length - 1];
-        categoryCode = targetCode;
+        categoryCode = parseInt(targetCode);
       }
     });
     // 카테고리 코드 가져오기 끝
 
-    // 상품 가격 가져오기
+    // 상품 가격 가져오기 시작
     const priceTemp = await driver.wait(
       until.elementLocated(By.css("._1LY7DqCnwR")),
       10000
     );
     const price = await priceTemp.getText();
+    const splitedPrice = parseInt(price.replace(",", ""));
 
-    // 썸네일 이미지 소스 가져오기
-    const thumbnailImg = await driver.wait(
-      until.elementLocated(By.css(".bd_2DO68")),
-      10000
-    );
-    const thumbnailSrc = await thumbnailImg.getAttribute("src");
+    // 상품 가격 가져오기 끝
 
-    // 이미지 다운로드
-    const imageResponse = await axios.get(thumbnailSrc, {
-      responseType: "arraybuffer",
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }), // SSL 인증서 검증 건너뛰기
-    });
+    // 썸네일 가져오기 시작
+    let thumbnailLi;
 
-    // 이미지를 파일로 저장하기
-    const filename = `${Date.now()}.png`; // 파일명을 현재 시간으로 설정
-    const imagePath = `temp/${filename}`; // 이미지가 저장될 경로
-    fs.writeFileSync(imagePath, Buffer.from(imageResponse.data));
+    try {
+      thumbnailLi = await driver.wait(
+        until.elementsLocated(By.css(".bd_2YVUb li")),
+        10000
+      );
+    } catch (error) {
+      thumbnailLi = [];
+    }
 
-    const rootPath = appRoot.toString();
+    let thumbArr = [];
+
+    if (thumbnailLi.length === 0 || null || undefined) {
+      const thumbnailImg = await driver.wait(
+        until.elementLocated(By.css(".bd_2DO68")),
+        10000
+      );
+
+      const thumbnailSrc = await thumbnailImg.getAttribute("src");
+      thumbArr.push(thumbnailSrc);
+    } else {
+      for await (const element of thumbnailLi) {
+        await element.click();
+        sleep();
+
+        const thumbnailImg = await driver.wait(
+          until.elementLocated(By.css(".bd_2DO68")),
+          10000
+        );
+
+        const thumbnailSrc = await thumbnailImg.getAttribute("src");
+        thumbArr.push(thumbnailSrc);
+      }
+    }
+    // 썸네일 가져오기 끝
 
     // crawlData에 데이터 넣기
     crawlData.b = modelName;
@@ -191,7 +212,18 @@ async function generate(url, driver) {
     crawlData.f = modelName;
     crawlData.h = modelName;
     crawlData.j = categoryCode;
-    crawlData.p = price;
+    crawlData.p = splitedPrice;
+    crawlData.u = thumbArr[0];
+    thumbArr[1] !== undefined
+      ? (crawlData.v = thumbArr[1])
+      : (crawlData.v = "");
+    thumbArr[2] !== undefined
+      ? (crawlData.w = thumbArr[2])
+      : (crawlData.w = "");
+    thumbArr[3] !== undefined
+      ? (crawlData.x = thumbArr[3])
+      : (crawlData.x = "");
+    console.log(crawlData);
   } catch (error) {
     console.error("에러:", error);
     throw new Error("이미지 가져오기에 실패했습니다.");
@@ -207,6 +239,19 @@ function sleep() {
     now = Date.now();
   }
 }
+
+// // 이미지 다운로드
+// const imageResponse = await axios.get(thumbnailSrc, {
+//   responseType: "arraybuffer",
+//   httpsAgent: new https.Agent({ rejectUnauthorized: false }), // SSL 인증서 검증 건너뛰기
+// });
+
+// // 이미지를 파일로 저장하기
+// const filename = `${Date.now()}.png`; // 파일명을 현재 시간으로 설정
+// const imagePath = `temp/${filename}`; // 이미지가 저장될 경로
+// fs.writeFileSync(imagePath, Buffer.from(imageResponse.data));
+
+// const rootPath = appRoot.toString();
 
 // async function getImageURL() {
 //   // 이미지 요소 찾기
