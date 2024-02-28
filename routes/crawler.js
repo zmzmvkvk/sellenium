@@ -38,7 +38,7 @@ let crawlData = {
   ad: ``, //이미지10URL
   ae: ``, //추가정보
   af: ``, //입력사항
-  ag: ``, //옵션구분
+  ag: `SM`, //옵션구분
   ah: ``, //선택옵션
   ai: ``, //입력형옵션
   aj: ``, //추가구매옵션
@@ -184,7 +184,7 @@ async function generate(url, driver) {
     } else {
       for await (const element of thumbnailLi) {
         await element.click();
-        sleep();
+        // sleep();
 
         const thumbnailImg = await driver.wait(
           until.elementLocated(By.css(".bd_2DO68")),
@@ -197,6 +197,60 @@ async function generate(url, driver) {
     }
     // 썸네일 가져오기 끝
 
+    // 옵션 가져오기 시작
+
+    const optionBtn = await driver.wait(
+      until.elementLocated(By.css(".bd_1fhc9")),
+      10000
+    );
+
+    optionBtn.click();
+    sleep();
+
+    const optionLi = await driver.wait(
+      until.elementsLocated(By.css(".bd_zxkRR li")),
+      10000
+    );
+
+    for await (const option of optionLi) {
+      const text = await option.getText();
+
+      const indexOfPlus = text.indexOf("(+");
+      if (indexOfPlus !== -1) {
+        const s = (await text.indexOf("(+")) + 2;
+        const e = await text.indexOf("원");
+        const subText = await text.substring(0, text.indexOf("(+"));
+        const plusCharge = await text.substring(s, e);
+        const optionText = `${subText}${plusCharge}`;
+        console.log(optionText);
+      } else {
+        console.log(text);
+      }
+    }
+    /**
+     * [옵션타입]
+      프리 사이즈/그레이==0=999=0=0=0=
+      프리 사이즈/그린==0=999=0=0=0=
+      프리 사이즈/블랙==0=999=0=0=0=
+      프리 사이즈/차콜==0=999=0=0=0=
+      프리 사이즈/위장==0=999=0=0=0=
+      프리 사이즈/스노우==0=999=0=0=0=
+      프리 사이즈/CP==0=999=0=0=0=
+      프리 사이즈/퀵해체 블랙==0=999=0=0=0=
+      프리 사이즈/퀵해체 CP==0=999=0=0=0=
+      프리 사이즈/퀵해체 그린==0=999=0=0=0=
+
+
+     * [옵션타입]
+      2.6m 브론즈 헤드 4==0=999=0=0=0=
+      2.6m 블랙헤드 4==0=999=0=0=0=
+      2.9m 브론즈 헤드 4==8400=999=0=0=0=
+      2.9m 블랙헤드 4==8400=999=0=0=0=
+      3.2m 브론즈 헤드 4==10400=999=0=0=0=
+      3.2m 블랙헤드 4==10400=999=0=0=0=
+      3.5m 브론즈 헤드 4==14700=999=0=0=0=
+      3.5m 블랙헤드 4==14700=999=0=0=0=
+     */
     // crawlData에 데이터 넣기
     crawlData.b = modelName;
     crawlData.c = brandName;
@@ -215,7 +269,25 @@ async function generate(url, driver) {
     thumbArr[3] !== undefined
       ? (crawlData.x = thumbArr[3])
       : (crawlData.x = "");
-    console.log(crawlData);
+    thumbArr[4] !== undefined
+      ? (crawlData.z = thumbArr[4])
+      : (crawlData.z = "");
+    thumbArr[5] !== undefined
+      ? (crawlData.aa = thumbArr[5])
+      : (crawlData.aa = "");
+    thumbArr[6] !== undefined
+      ? (crawlData.ab = thumbArr[6])
+      : (crawlData.ab = "");
+    thumbArr[7] !== undefined
+      ? (crawlData.ac = thumbArr[7])
+      : (crawlData.ac = "");
+    thumbArr[8] !== undefined
+      ? (crawlData.ad = thumbArr[8])
+      : (crawlData.ad = "");
+    thumbArr[9] !== undefined
+      ? (crawlData.ae = thumbArr[9])
+      : (crawlData.ae = "");
+    // console.log(crawlData);
   } catch (error) {
     console.error("에러:", error);
     throw new Error("이미지 가져오기에 실패했습니다.");
