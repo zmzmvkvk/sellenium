@@ -1,4 +1,4 @@
-const { Builder, By, Capabilities, until } = require("selenium-webdriver");
+const { Builder, By, Key, until, Actions } = require("selenium-webdriver");
 const fs = require("fs");
 const path = require("path");
 const https = require("https"); // https 모듈 불러오기
@@ -36,64 +36,64 @@ let crawlData = {
   ab: ``, //이미지8URL
   ac: ``, //이미지9URL
   ad: ``, //이미지10URL
-  ae: ``, //추가정보
-  af: ``, //입력사항
-  ag: `SM`, //옵션구분
-  ah: ``, //선택옵션
-  ai: ``, //입력형옵션
-  aj: ``, //추가구매옵션
-  ak: ``, //상세설명
-  al: ``, //추가상세설명
-  am: ``, //광고/홍보
-  an: ``, //제조일자
-  ao: ``, //유효일자
-  ap: ``, //사은품내용
-  aq: ``, //키워드
-  ar: ``, //인증구분
-  as: ``, //인증정보
-  at: ``, //거래처
-  au: ``, //영어상품명
-  av: ``, //중국어상품명
-  aw: ``, //일본어상품명
-  ax: ``, //영어상세설명
-  ay: ``, //중국어상세설명
-  az: ``, //일본어상세설명
-  ba: ``, //상품무게
-  bb: ``, //영어키워드
-  bc: ``, //중국어키워드
-  bd: ``, //일본어키워드
-  be: ``, //생산지국가
-  bf: ``, //전세계배송코드
-  bg: ``, //사이즈
-  bh: ``, //포장방법
-  bi: ``, //개별카테고리
-  bj: ``, //상품상세코드
-  bk: ``, //상품상세1
-  bl: ``, //상품상세2
-  bm: ``, //상품상세3
-  bn: ``, //상품상세4
-  bo: ``, //상품상세5
-  bp: ``, //상품상세6
-  bq: ``, //상품상세7
-  br: ``, //상품상세8
-  bs: ``, //상품상세9
-  bt: ``, //상품상세10
-  bu: ``, //상품상세11
-  bv: ``, //상품상세12
-  bw: ``, //상품상세13
-  bx: ``, //상품상세14
-  by: ``, //상품상세15
-  bz: ``, //상품상세16
-  ca: ``, //상품상세17
-  cb: ``, //상품상세18
-  cc: ``, //상품상세19
-  cd: ``, //상품상세20
-  ce: ``, //상품상세21
-  cf: ``, //상품상세22
-  cg: ``, //상품상세23
-  ch: ``, //상품상세24
-  ci: ``, //상품상세25
-  cj: ``, //상품상세26
+  ae: ``, //추가정보입력사항
+  af: `SM`, //옵션구분
+  ag: ``, //선택옵션
+  ah: ``, //입력형옵션
+  ai: ``, //추가구매옵션
+  aj: ``, //상세설명
+  ak: ``, //추가상세설명
+  al: ``, //광고/홍보
+  am: ``, //제조일자
+  an: ``, //유효일자
+  ao: ``, //사은품내용
+  ap: ``, //키워드
+  aq: ``, //인증구분
+  ar: ``, //인증정보
+  as: ``, //거래처
+  at: ``, //영어상품명
+  au: ``, //중국어상품명
+  av: ``, //일본어상품명
+  aw: ``, //영어상세설명
+  ax: ``, //중국어상세설명
+  ay: ``, //일본어상세설명
+  az: ``, //상품무게
+  ba: ``, //영어키워드
+  bb: ``, //중국어키워드
+  bc: ``, //일본어키워드
+  bd: ``, //생산지국가
+  be: ``, //전세계배송코드
+  bf: ``, //사이즈
+  bg: ``, //포장방법
+  bh: ``, //개별카테고리
+  bi: ``, //상품상세코드
+  bj: ``, //상품상세1
+  bk: ``, //상품상세2
+  bl: ``, //상품상세3
+  bm: ``, //상품상세4
+  bn: ``, //상품상세5
+  bo: ``, //상품상세6
+  bp: ``, //상품상세7
+  bq: ``, //상품상세8
+  br: ``, //상품상세9
+  bs: ``, //상품상세10
+  bt: ``, //상품상세11
+  bu: ``, //상품상세12
+  bv: ``, //상품상세13
+  bw: ``, //상품상세14
+  bx: ``, //상품상세15
+  by: ``, //상품상세16
+  bz: ``, //상품상세17
+  ca: ``, //상품상세18
+  cb: ``, //상품상세19
+  cc: ``, //상품상세20
+  cd: ``, //상품상세21
+  ce: ``, //상품상세22
+  cf: ``, //상품상세23
+  cg: ``, //상품상세24
+  ch: ``, //상품상세25
+  ci: ``, //상품상세26
+  cj: ``, //
 };
 
 async function generate(url, driver) {
@@ -198,19 +198,20 @@ async function generate(url, driver) {
     // 썸네일 가져오기 끝
 
     // 옵션 가져오기 시작
-
     const optionBtn = await driver.wait(
       until.elementLocated(By.css(".bd_1fhc9")),
       10000
     );
 
     optionBtn.click();
-    sleep();
+    // sleep();
 
     const optionLi = await driver.wait(
       until.elementsLocated(By.css(".bd_zxkRR li")),
       10000
     );
+
+    let optionType = `[옵션타입]` + "\n";
 
     for await (const option of optionLi) {
       const text = await option.getText();
@@ -219,26 +220,44 @@ async function generate(url, driver) {
       if (indexOfPlus !== -1) {
         const s = (await text.indexOf("(+")) + 2;
         const e = await text.indexOf("원");
-        const subText = await text.substring(0, text.indexOf("(+"));
+        const subText = await text.substring(0, text.indexOf("(+")).trim();
         const plusCharge = await text.substring(s, e);
-        const optionText = `${subText}${plusCharge}`;
-        console.log(optionText);
+        const optionText = `${subText}==${plusCharge}`;
+        optionType += `${optionText}==999=0=0=0=` + "\n";
       } else {
-        console.log(text);
+        optionType += `${text.trim()}==0==999=0=0=0=` + "\n";
       }
-      2;
     }
-    /**
-     * [옵션타입]
-      2.6m 브론즈 헤드 4==0=999=0=0=0=
-      2.6m 블랙헤드 4==0=999=0=0=0=
-      2.9m 브론즈 헤드 4==8400=999=0=0=0=
-      2.9m 블랙헤드 4==8400=999=0=0=0=
-      3.2m 브론즈 헤드 4==10400=999=0=0=0=
-      3.2m 블랙헤드 4==10400=999=0=0=0=
-      3.5m 브론즈 헤드 4==14700=999=0=0=0=
-      3.5m 블랙헤드 4==14700=999=0=0=0=
-     */
+
+    // 옵션 가져오기 끝
+
+    // 상세 HTML TAG 가져오기
+    await driver.executeScript("window.scrollBy(0, 3000)");
+    sleep();
+
+    const moreBtn = await driver.wait(
+      until.elementLocated(By.css("._1gG8JHE9Zc")),
+      10000
+    );
+
+    moreBtn.click();
+
+    const untilTarget = await driver.wait(
+      until.elementLocated(By.css(".product_info_notice")),
+      10000
+    );
+
+    await driver.executeScript("arguments[0].scrollIntoView();", untilTarget);
+
+    const detailHtml = await driver.wait(
+      until.elementLocated(By.css("._3osy73V_eD")),
+      10000
+    );
+
+    const detailHtmlTag = await detailHtml.getAttribute("innerHTML");
+    console.log(detailHtmlTag);
+    // 상세 HTML TAG 끝
+
     // crawlData에 데이터 넣기
     crawlData.b = modelName;
     crawlData.c = brandName;
@@ -275,6 +294,8 @@ async function generate(url, driver) {
     thumbArr[9] !== undefined
       ? (crawlData.ae = thumbArr[9])
       : (crawlData.ae = "");
+    crawlData.ag = `${optionType}`;
+    // crawlData.aj = `${detailHtmlTag}`;
     // console.log(crawlData);
   } catch (error) {
     console.error("에러:", error);
