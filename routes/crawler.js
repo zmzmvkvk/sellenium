@@ -173,19 +173,12 @@ async function generate(url, driver) {
 
     let thumbArr = [];
 
-    if (thumbnailLi.length === 0 || null || undefined) {
-      const thumbnailImg = await driver.wait(
-        until.elementLocated(By.css(".bd_2DO68")),
-        10000
-      );
-
-      const thumbnailSrc = await thumbnailImg.getAttribute("src");
-      thumbArr.push(thumbnailSrc);
-    } else {
-      for await (const element of thumbnailLi) {
-        await element.click();
-        // sleep();
-
+    if (
+      thumbnailLi.length === 0 ||
+      thumbnailLi.length === null ||
+      thumbnailLi.length === undefined
+    ) {
+      try {
         const thumbnailImg = await driver.wait(
           until.elementLocated(By.css(".bd_2DO68")),
           10000
@@ -193,6 +186,31 @@ async function generate(url, driver) {
 
         const thumbnailSrc = await thumbnailImg.getAttribute("src");
         thumbArr.push(thumbnailSrc);
+      } catch (error) {
+        console.error(
+          "썸네일 이미지를 가져오는 도중 오류가 발생했습니다.",
+          error
+        );
+      }
+    } else {
+      for await (const element of thumbnailLi) {
+        await element.click();
+        // sleep();
+
+        try {
+          const thumbnailImg = await driver.wait(
+            until.elementLocated(By.css(".bd_2DO68")),
+            10000
+          );
+
+          const thumbnailSrc = await thumbnailImg.getAttribute("src");
+          thumbArr.push(thumbnailSrc);
+        } catch (error) {
+          console.error(
+            "썸네일 이미지를 가져오는 도중 오류가 발생했습니다.",
+            error
+          );
+        }
       }
     }
     // 썸네일 가져오기 끝
@@ -229,10 +247,14 @@ async function generate(url, driver) {
       }
     }
 
+    console.log(optionType);
     // 옵션 가져오기 끝
 
     // 상세 HTML TAG 가져오기
-    await driver.executeScript("window.scrollBy(0, 3000)");
+    await driver.executeScript(
+      "window.scrollBy({top: 1500,behavior: 'smooth'})"
+    );
+
     sleep();
 
     const moreBtn = await driver.wait(
@@ -241,21 +263,67 @@ async function generate(url, driver) {
     );
 
     moreBtn.click();
+    sleep();
+
+    // sleep();
 
     const untilTarget = await driver.wait(
       until.elementLocated(By.css(".product_info_notice")),
       10000
     );
 
-    await driver.executeScript("arguments[0].scrollIntoView();", untilTarget);
-
-    const detailHtml = await driver.wait(
-      until.elementLocated(By.css("._3osy73V_eD")),
-      10000
+    await driver.executeScript(
+      "arguments[0].scrollIntoView({behavior: 'smooth', block: 'end', inline: 'nearest'});",
+      untilTarget
     );
 
-    const detailHtmlTag = await detailHtml.getAttribute("innerHTML");
-    console.log(detailHtmlTag);
+    sleep();
+
+    await driver.executeScript(
+      "arguments[0].scrollIntoView({behavior: 'smooth', block: 'end', inline: 'nearest'});",
+      untilTarget
+    );
+
+    sleep();
+
+    await driver.executeScript(
+      "arguments[0].scrollIntoView({behavior: 'smooth', block: 'end', inline: 'nearest'});",
+      untilTarget
+    );
+
+    sleep();
+
+    try {
+      const optionImages = await driver.wait(
+        until.elementsLocated(
+          By.css("._3osy73V_eD tbody tr:nth-of-type(1) img")
+        ),
+        10000
+      );
+
+      const optionTexts = await driver.wait(
+        until.elementsLocated(
+          By.css("._3osy73V_eD tbody tr:nth-of-type(2) td")
+        ),
+        10000
+      );
+      let optionImageSrc = [];
+      let optionText = [];
+
+      for await (img of optionImages) {
+        optionImageSrc.push(await driver.wait(img.getAttribute("src"), 10000));
+      }
+
+      for await (text of optionTexts) {
+        optionText.push(await driver.wait(text.getText(), 10000));
+      }
+
+      console.log(optionImageSrc);
+      console.log(optionText);
+    } catch (error) {
+      console.error("option이 없습니다.", error);
+    }
+
     // 상세 HTML TAG 끝
 
     // crawlData에 데이터 넣기

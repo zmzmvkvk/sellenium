@@ -45,7 +45,7 @@ app.post("/readcsv", upload.single("csvFile"), async (req, res) => {
     .build();
 
   await crawler.generate(
-    "https://smartstore.naver.com/richcommerce/products/9943372022",
+    "https://smartstore.naver.com/rokumall/products/9529880607",
     driver
   );
 
