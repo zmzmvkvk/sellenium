@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https"); // https 모듈 불러오기
 const axios = require("axios");
+const Jimp = require("jimp");
 const appRoot = require("app-root-path");
 
 let crawlData = {
@@ -48,7 +49,7 @@ let crawlData = {
   an: ``, //유효일자
   ao: ``, //사은품내용
   ap: ``, //키워드
-  aq: ``, //인증구분
+  aq: `B`, //인증구분
   ar: ``, //인증정보
   as: ``, //거래처
   at: ``, //영어상품명
@@ -100,7 +101,6 @@ async function generate(url, driver) {
   try {
     await driver.get(`${url}`);
 
-    // sleep();
     // 상품명 가져오기
     const b = await driver.wait(
       until.elementLocated(By.css("fieldset > div h3")),
@@ -111,7 +111,6 @@ async function generate(url, driver) {
     const modelName = shuffleString(bt);
     const brandName = "꾸러미배송 협력사";
 
-    // sleep();
     // 카테고리 코드 가져오기 시작
     let categoryCode;
     let categoriesList = [];
@@ -195,7 +194,6 @@ async function generate(url, driver) {
     } else {
       for await (const element of thumbnailLi) {
         await element.click();
-        // sleep();
 
         try {
           const thumbnailImg = await driver.wait(
@@ -222,7 +220,6 @@ async function generate(url, driver) {
     );
 
     optionBtn.click();
-    // sleep();
 
     const optionLi = await driver.wait(
       until.elementsLocated(By.css(".bd_zxkRR li")),
@@ -246,8 +243,6 @@ async function generate(url, driver) {
         optionType += `${text.trim()}==0==999=0=0=0=` + "\n";
       }
     }
-
-    console.log(optionType);
     // 옵션 가져오기 끝
 
     // 상세 HTML TAG 가져오기
@@ -264,8 +259,6 @@ async function generate(url, driver) {
 
     moreBtn.click();
     sleep();
-
-    // sleep();
 
     const untilTarget = await driver.wait(
       until.elementLocated(By.css(".product_info_notice")),
@@ -295,22 +288,18 @@ async function generate(url, driver) {
 
     try {
       const optionImages = await driver.wait(
-        until.elementsLocated(
-          By.css("._3osy73V_eD tbody tr:nth-of-type(1) img")
-        ),
+        until.elementsLocated(By.css("._3osy73V_eD tbody tr img")),
         10000
       );
 
       const optionTexts = await driver.wait(
-        until.elementsLocated(
-          By.css("._3osy73V_eD tbody tr:nth-of-type(2) td")
-        ),
+        until.elementsLocated(By.css("._3osy73V_eD tbody tr td")),
         10000
       );
       let optionImageSrc = [];
       let optionText = [];
 
-      for await (img of optionImages) {
+      for await ([i, img] of optionImages.entries()) {
         optionImageSrc.push(await driver.wait(img.getAttribute("src"), 10000));
       }
 
@@ -318,10 +307,18 @@ async function generate(url, driver) {
         optionText.push(await driver.wait(text.getText(), 10000));
       }
 
+      let filteredOptionText = optionText.filter((el) => el !== "");
+
       console.log(optionImageSrc);
-      console.log(optionText);
+      console.log(filteredOptionText);
     } catch (error) {
-      console.error("option이 없습니다.", error);
+      console.error("option값이 없습니다.", error);
+      // try {
+      //   const optionDiv = await driver.wait(
+      //     until.elementsLocated(By.css("._3osy73V_eD tbody tr img")),
+      //     10000
+      //   );
+      // } catch (error) {}
     }
 
     // 상세 HTML TAG 끝
@@ -363,7 +360,6 @@ async function generate(url, driver) {
       ? (crawlData.ae = thumbArr[9])
       : (crawlData.ae = "");
     crawlData.ag = `${optionType}`;
-    // crawlData.aj = `${detailHtmlTag}`;
     // console.log(crawlData);
   } catch (error) {
     console.error("에러:", error);
@@ -405,8 +401,6 @@ function sleep() {
 //   let imageElement = await driver.findElement(By.css(".bd_2DO68"));
 
 //   const brandName = `꾸러미배송 협력사`;
-
-//
 
 //   // 이미지 URL 가져오기
 //   // let imageURL = await imageElement.getAttribute("src");
