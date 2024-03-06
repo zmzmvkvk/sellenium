@@ -286,6 +286,13 @@ async function generate(url, driver) {
 
     sleep();
 
+    let imgResource = {
+      option: [],
+      detail: [],
+    };
+    let optionImageSrc = [];
+    let optionText = [];
+    let detailImageSrc = [];
     try {
       const optionImages = await driver.wait(
         until.elementsLocated(By.css("._3osy73V_eD tbody tr img")),
@@ -296,10 +303,8 @@ async function generate(url, driver) {
         until.elementsLocated(By.css("._3osy73V_eD tbody tr td")),
         10000
       );
-      let optionImageSrc = [];
-      let optionText = [];
 
-      for await ([i, img] of optionImages.entries()) {
+      for await (img of optionImages) {
         optionImageSrc.push(await driver.wait(img.getAttribute("src"), 10000));
       }
 
@@ -309,16 +314,45 @@ async function generate(url, driver) {
 
       let filteredOptionText = optionText.filter((el) => el !== "");
 
-      console.log(optionImageSrc);
-      console.log(filteredOptionText);
+      for (let i = 0; i < optionImageSrc.length; i++) {
+        imgResource.option = [
+          ...imgResource.option,
+          {
+            src: optionImageSrc[i],
+            text: filteredOptionText[i],
+          },
+        ];
+      }
+
+      const detailImages = await driver.wait(
+        until.elementsLocated(By.css(`._3osy73V_eD img`)),
+        10000
+      );
+
+      //for await에서 index값 얻기
+      for await ([idx, img] of detailImages.entries()) {
+        let $this = await driver.wait(img.getAttribute("src"), 10000);
+
+        if (idx > 1) {
+          detailImageSrc.push($this);
+        }
+      }
+      detailImageSrc.pop();
+      imgResource.detail.push(...detailImageSrc);
+
+      for (let i = 0; i < imgResource.detail.length; i++) {
+        imgResource.option.map((it, idx) => {
+          imgResource.detail.map((el, idx) => {
+            if (el.includes(it.src)) {
+              imgResource.detail.splice(idx, 1);
+            }
+          });
+        });
+      }
+
+      console.log(imgResource);
     } catch (error) {
       console.error("option값이 없습니다.", error);
-      // try {
-      //   const optionDiv = await driver.wait(
-      //     until.elementsLocated(By.css("._3osy73V_eD tbody tr img")),
-      //     10000
-      //   );
-      // } catch (error) {}
     }
 
     // 상세 HTML TAG 끝
