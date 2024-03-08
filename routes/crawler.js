@@ -104,7 +104,7 @@ async function generate(url, driver) {
     // 상품명 가져오기
     const b = await driver.wait(
       until.elementLocated(By.css("fieldset > div h3")),
-      10000
+      3000
     );
     const bt = await b.getText();
 
@@ -116,7 +116,7 @@ async function generate(url, driver) {
     let categoriesList = [];
     const categories = await driver.wait(
       until.elementsLocated(By.css("._1_FPHJbv10")),
-      10000
+      3000
     );
 
     for (const category of categories) {
@@ -141,21 +141,25 @@ async function generate(url, driver) {
     });
 
     splitedList.map((list, i) => {
-      if (list.includes(categoriesList[categoriesList.length - 1])) {
-        const listArr = list.split(",");
-        const targetCode = listArr[listArr.length - 1];
-        categoryCode = parseInt(targetCode);
-      }
+      list.split(",").map((it) => {
+        if (it === categoriesList[categoriesList.length - 1]) {
+          const listArr = list.split(",");
+          const targetCode = listArr[listArr.length - 1];
+          categoryCode = parseInt(targetCode);
+        }
+      });
     });
     // 카테고리 코드 가져오기 끝
 
     // 상품 가격 가져오기 시작
+    let splitedPrice = 0;
     const priceTemp = await driver.wait(
-      until.elementLocated(By.css("._1LY7DqCnwR")),
-      10000
+      until.elementLocated(By.css("strong ._1LY7DqCnwR")),
+      3000
     );
     const price = await priceTemp.getText();
-    const splitedPrice = parseInt(price.replace(",", ""));
+    splitedPrice = parseInt(price.replace(",", ""));
+
     // 상품 가격 가져오기 끝
 
     // 썸네일 가져오기 시작
@@ -164,7 +168,7 @@ async function generate(url, driver) {
     try {
       thumbnailLi = await driver.wait(
         until.elementsLocated(By.css(".bd_2YVUb li")),
-        10000
+        3000
       );
     } catch (error) {
       thumbnailLi = [];
@@ -180,7 +184,7 @@ async function generate(url, driver) {
       try {
         const thumbnailImg = await driver.wait(
           until.elementLocated(By.css(".bd_2DO68")),
-          10000
+          3000
         );
 
         const thumbnailSrc = await thumbnailImg.getAttribute("src");
@@ -198,7 +202,7 @@ async function generate(url, driver) {
         try {
           const thumbnailImg = await driver.wait(
             until.elementLocated(By.css(".bd_2DO68")),
-            10000
+            3000
           );
 
           const thumbnailSrc = await thumbnailImg.getAttribute("src");
@@ -216,14 +220,14 @@ async function generate(url, driver) {
     // 옵션 가져오기 시작
     const optionBtn = await driver.wait(
       until.elementLocated(By.css(".bd_1fhc9")),
-      10000
+      3000
     );
 
     optionBtn.click();
 
     const optionLi = await driver.wait(
       until.elementsLocated(By.css(".bd_zxkRR li")),
-      10000
+      3000
     );
 
     let optionType = `[옵션타입]` + "\n";
@@ -254,7 +258,7 @@ async function generate(url, driver) {
 
     const moreBtn = await driver.wait(
       until.elementLocated(By.css("._1gG8JHE9Zc")),
-      10000
+      3000
     );
 
     moreBtn.click();
@@ -262,7 +266,7 @@ async function generate(url, driver) {
 
     const untilTarget = await driver.wait(
       until.elementLocated(By.css(".product_info_notice")),
-      10000
+      3000
     );
 
     await driver.executeScript(
@@ -293,23 +297,24 @@ async function generate(url, driver) {
     let optionImageSrc = [];
     let optionText = [];
     let detailImageSrc = [];
+
     try {
       const optionImages = await driver.wait(
         until.elementsLocated(By.css("._3osy73V_eD tbody tr img")),
-        10000
+        3000
       );
 
       const optionTexts = await driver.wait(
         until.elementsLocated(By.css("._3osy73V_eD tbody tr td")),
-        10000
+        3000
       );
 
       for await (img of optionImages) {
-        optionImageSrc.push(await driver.wait(img.getAttribute("src"), 10000));
+        optionImageSrc.push(await driver.wait(img.getAttribute("src"), 3000));
       }
 
       for await (text of optionTexts) {
-        optionText.push(await driver.wait(text.getText(), 10000));
+        optionText.push(await driver.wait(text.getText(), 3000));
       }
 
       let filteredOptionText = optionText.filter((el) => el !== "");
@@ -326,19 +331,23 @@ async function generate(url, driver) {
 
       const detailImages = await driver.wait(
         until.elementsLocated(By.css(`._3osy73V_eD img`)),
-        10000
+        3000
       );
 
       //for await에서 index값 얻기
       for await ([idx, img] of detailImages.entries()) {
-        let $this = await driver.wait(img.getAttribute("src"), 10000);
+        let $this = await driver.wait(img.getAttribute("src"), 3000);
 
         if (idx > 1) {
           detailImageSrc.push($this);
         }
       }
+
       detailImageSrc.pop();
       imgResource.detail.push(...detailImageSrc);
+
+      // const optionArr = imgResource.option.map((x) => x.src);
+      // imgResource.detail.filter((el) => !optionArr.includes(el));
 
       for (let i = 0; i < imgResource.detail.length; i++) {
         imgResource.option.map((it, idx) => {
@@ -350,11 +359,10 @@ async function generate(url, driver) {
         });
       }
 
-      console.log(imgResource);
+      // console.log(imgResource);
     } catch (error) {
       console.error("option값이 없습니다.", error);
     }
-
     // 상세 HTML TAG 끝
 
     // crawlData에 데이터 넣기
@@ -364,7 +372,7 @@ async function generate(url, driver) {
     crawlData.f = modelName;
     crawlData.h = modelName;
     crawlData.j = categoryCode;
-    crawlData.p = splitedPrice;
+    crawlData.p = splitedPrice - 500;
     crawlData.u = thumbArr[0];
     thumbArr[1] !== undefined
       ? (crawlData.v = thumbArr[1])
