@@ -293,6 +293,7 @@ async function generate(url, driver) {
     let imgResource = {
       option: [],
       detail: [],
+      video: "",
     };
     let optionImageSrc = [];
     let optionText = [];
@@ -346,9 +347,6 @@ async function generate(url, driver) {
       detailImageSrc.pop();
       imgResource.detail.push(...detailImageSrc);
 
-      // const optionArr = imgResource.option.map((x) => x.src);
-      // imgResource.detail.filter((el) => !optionArr.includes(el));
-
       for (let i = 0; i < imgResource.detail.length; i++) {
         imgResource.option.map((it, idx) => {
           imgResource.detail.map((el, idx) => {
@@ -359,7 +357,12 @@ async function generate(url, driver) {
         });
       }
 
-      // console.log(imgResource);
+      const detailVideo = await driver.wait(
+        until.elementLocated(By.css(`._3osy73V_eD video`)),
+        3000
+      );
+
+      console.log(detailVideo.getAttribute("innerHTML"));
     } catch (error) {
       console.error("option값이 없습니다.", error);
     }
