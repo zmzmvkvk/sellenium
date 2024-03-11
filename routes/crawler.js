@@ -293,11 +293,14 @@ async function generate(url, driver) {
     let imgResource = {
       option: [],
       detail: [],
-      video: "",
     };
     let optionImageSrc = [];
     let optionText = [];
     let detailImageSrc = [];
+
+    let optionInnerHtml = "";
+    let detailInnerHtml = "";
+    let bottomInnerHtml = "";
 
     try {
       const optionImages = await driver.wait(
@@ -357,12 +360,31 @@ async function generate(url, driver) {
         });
       }
 
-      const detailVideo = await driver.wait(
-        until.elementLocated(By.css(`._3osy73V_eD video`)),
-        3000
-      );
+      for await (op of imgResource.option) {
+        try {
+          optionInnerHtml += `<div style=" display: inline-table; width: 50%; border: 1px solid #aaa; margin: 30px 0 0 0; box-sizing: border-box;"><img src="${op.src}" width="390"/><div style=" display: block; border-top: 1px solid #aaa; padding: 15px; font-size: 15pt; box-sizing: border-box;">${op.text}</div></div>`;
+        } catch (error) {
+          console.error;
+        }
+      }
 
-      console.log(detailVideo.getAttribute("innerHTML"));
+      for await (detail of imgResource.detail) {
+        try {
+          detailInnerHtml += `<div><img src="${detail}" /></div>`;
+        } catch (error) {
+          console.error;
+        }
+      }
+
+      let detailHtml = `
+        <div style="margin: 0 auto; width: 100%; text-align: center">
+          <img src="https://dfua3zgxja7ca.cloudfront.net/common/option.jpg" />
+          <div style="display: block; align-items: center; width: 100%; font-size: 0">${optionInnerHtml}</div>
+          <div style="text-align: center; margin-top: 30px">${detailInnerHtml}</div>
+          <div style="text-align: center; margin-top: 30px">${bottomInnerHtml}</div>
+        </div>
+      `;
+      console.log(detailHtml);
     } catch (error) {
       console.error("option값이 없습니다.", error);
     }
