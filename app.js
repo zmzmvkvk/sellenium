@@ -19,6 +19,9 @@ app.use(bodyParser.json());
 
 let urlList = [];
 
+// HTTPS 요청을 보내기 전에 환경 변수를 설정합니다.
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 app.get("/", async (req, res) => {
   res.sendFile("public/index.html");
 });
@@ -45,9 +48,12 @@ app.post("/readcsv", upload.single("csvFile"), async (req, res) => {
     .build();
 
   await crawler.generate(
-    "https://smartstore.naver.com/likeuours/products/9328705675",
+    "https://smartstore.naver.com/jshappy/products/5951683312",
     driver
   );
+
+  console.log("완료");
+  // res.sendFile(__dirname + "/public/index.html");
 
   // URL을 비동기적으로 처리
   // for await (const url of urlList) {
