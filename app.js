@@ -10,20 +10,28 @@ const csv = require("csv-parser");
 const { createWorker } = require("tesseract.js");
 const crawler = require("./routes/crawler");
 const { Builder, By, Capabilities } = require("selenium-webdriver");
+const userList = require("./data/user");
 
-// 파일 업로드를 위한 multer 미들웨어 설정
 const upload = multer({ dest: "uploads/" });
-app.use(express.static("public"));
-// JSON 파싱 미들웨어 등록
-app.use(bodyParser.json());
-
 let urlList = [];
 
-// HTTPS 요청을 보내기 전에 환경 변수를 설정합니다.
+app.use(express.static(path.join(__dirname, "public")));
+app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 app.get("/", async (req, res) => {
-  res.sendFile("public/index.html");
+  res.sendFile(__dirname + "/public/login.html");
+});
+
+app.get("/home", async (req, res) => {
+  res.sendFile(__dirname + "/public/main.html");
+});
+
+app.post("/login", async (req, res) => {
+  console.log(req.body);
+  console.log(userList);
+  res.redirect("/home");
 });
 
 app.post("/readcsv", upload.single("csvFile"), async (req, res) => {
@@ -48,7 +56,7 @@ app.post("/readcsv", upload.single("csvFile"), async (req, res) => {
     .build();
 
   await crawler.generate(
-    "https://smartstore.naver.com/jshappy/products/5951683312",
+    "https://smartstore.naver.com/ttokalmall/products/9657042387",
     driver
   );
 

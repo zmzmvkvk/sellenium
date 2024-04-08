@@ -6,6 +6,7 @@ const axios = require("axios");
 const Jimp = require("jimp");
 const appRoot = require("app-root-path");
 const AWS = require("aws-sdk");
+const userList = require("../data/user");
 
 AWS.config.update({
   accessKeyId: process.env.S3_ACCESS_KEY_ID,
@@ -15,9 +16,8 @@ AWS.config.update({
 
 /* S3에 있는 버킷 리스트 출력 */
 const s3 = new AWS.S3();
-const cloudfront = new AWS.CloudFront();
-
-// aws region 및 자격증명 설정
+// const userId = `1truss`;
+// const phoneNum = `010-4380-9730`;
 
 let crawlData = {
   a: `__AUTO__`, //업체상품코드
@@ -71,24 +71,24 @@ let crawlData = {
   aw: ``, //영어상세설명
   ax: ``, //중국어상세설명
   ay: ``, //일본어상세설명
-  az: ``, //상품무게
+  az: 0, //상품무게
   ba: ``, //영어키워드
   bb: ``, //중국어키워드
   bc: ``, //일본어키워드
   bd: ``, //생산지국가
   be: ``, //전세계배송코드
   bf: ``, //사이즈
-  bg: ``, //포장방법
+  bg: `봉투`, //포장방법
   bh: ``, //개별카테고리
-  bi: ``, //상품상세코드
-  bj: ``, //상품상세1
-  bk: ``, //상품상세2
-  bl: ``, //상품상세3
-  bm: ``, //상품상세4
-  bn: ``, //상품상세5
-  bo: ``, //상품상세6
-  bp: ``, //상품상세7
-  bq: ``, //상품상세8
+  bi: 35, //상품상세코드
+  bj: `상세설명참조`, //상품상세1
+  bk: `상세설명참조`, //상품상세2
+  bl: `해당사항 없음`, //상품상세3
+  bm: `중국`, //상품상세4
+  bn: `상세설명참조`, //상품상세5
+  bo: `Y`, //상품상세6
+  bp: `상세설명참조`, //상품상세7
+  bq: `${phoneNum}`, //상품상세8
   br: ``, //상품상세9
   bs: ``, //상품상세10
   bt: ``, //상품상세11
@@ -107,7 +107,6 @@ let crawlData = {
   cg: ``, //상품상세24
   ch: ``, //상품상세25
   ci: ``, //상품상세26
-  cj: ``, //
 };
 
 async function generate(url, driver) {
@@ -243,21 +242,23 @@ async function generate(url, driver) {
       3000
     );
 
-    let optionType = `[옵션타입]` + "\n";
+    let optionType = `[옵션타입]`;
 
     for await (const option of optionLi) {
       const text = await option.getText();
-
       const indexOfPlus = text.indexOf("(+");
+
       if (indexOfPlus !== -1) {
         const s = (await text.indexOf("(+")) + 2;
         const e = await text.indexOf("원");
         const subText = await text.substring(0, text.indexOf("(+")).trim();
         const plusCharge = await text.substring(s, e);
         const optionText = `${subText}==${plusCharge}`;
-        optionType += `${optionText}==999=0=0=0=` + "\n";
+        optionType += `${optionText}==999=0=0=0=
+        `;
       } else {
-        optionType += `${text.trim()}==0==999=0=0=0=` + "\n";
+        optionType += `${text.trim()}==0==999=0=0=0=
+        `;
       }
     }
     // 옵션 가져오기 끝
@@ -309,6 +310,9 @@ async function generate(url, driver) {
     let detailSrc = [];
     let awsOptionSrc = [];
     let awsDetailSrc = [];
+    let optionInnerHtml = "";
+    let detailInnerHtml = "";
+    let bottomInnerHtml = "";
 
     try {
       const optionImages = await driver.wait(
@@ -337,19 +341,15 @@ async function generate(url, driver) {
       console.error;
     }
 
-    if (optionImgSrc.length > 0) {
-      // option있을때
-      // await processImagesAndDeploy(optionImgSrc, "option");
-      // await processImagesAndDeploy(detailSrc, "detail");
-    } else {
-      // await processImagesAndDeploy(detailSrc, "detail");
+    for (let i = 0; i < detailSrc.length; i++) {
+      optionImgSrc.map((option) => {
+        if (detailSrc[i] == option) {
+          detailSrc.splice(i, 1);
+        }
+      });
     }
 
-    console.log(`awsOptionSrc = ${awsOptionSrc}`);
-    console.log(
-      `------------------------------------------------------------------------------------------------------`
-    );
-    console.log(`awsDetailSrc = ${awsDetailSrc}`);
+    await processImagesAndDeploy(optionImgSrc, detailSrc);
 
     // 이미지를 다운로드하고 워터마크를 적용하여 S3에 업로드하는 함수
     async function processImage(imgUrl) {
@@ -364,7 +364,7 @@ async function generate(url, driver) {
 
         // 워터마크를 적용 (예시: 이미지 오른쪽 아래에 워터마크 삽입)
         const watermark = await Jimp.read(
-          "https://idwhat-cdn.s3.ap-northeast-2.amazonaws.com/1truss/common/watermark.png"
+          "https://d2cbw0xqrrkdri.cloudfront.net/1truss/common/watermark.png"
         );
 
         const watermarkWdith = 200;
@@ -390,7 +390,6 @@ async function generate(url, driver) {
         };
 
         const uploadResult = await s3.upload(uploadParams).promise();
-        // console.log("Uploaded image:", uploadResult.Location);
 
         return uploadResult.Location;
       } catch (error) {
@@ -400,40 +399,24 @@ async function generate(url, driver) {
     }
 
     // 모든 이미지를 처리하고 CloudFront에 배포하는 함수
-    async function processImagesAndDeploy(imgUrlArray, imgType) {
-      try {
-        const processedUrls = await Promise.all(
+    async function processImagesAndDeploy(imgUrlArray, imgUrlArray2) {
+      let processedUrls = [];
+      if (
+        imgUrlArray !== "" ||
+        imgUrlArray !== null ||
+        imgUrlArray !== undefined
+      ) {
+        processedUrls = await Promise.all(
           imgUrlArray.map((imgUrl) => processImage(imgUrl))
         );
-
-        // CloudFront 캐시 갱신
-        const distributionId = "E3NGHDSZ2VTCD7";
-        await cloudfront
-          .createInvalidation({
-            DistributionId: distributionId,
-            InvalidationBatch: {
-              CallerReference: `${Date.now()}`,
-              Paths: {
-                Quantity: processedUrls.length,
-                Items: processedUrls.map(
-                  (url) => `/1truss/${url.split("/").pop()}`
-                ), // S3에 업로드된 파일의 경로
-              },
-            },
-          })
-          .promise();
-
-        console.log("CloudFront cache invalidated successfully.");
-
-        // 이미지 유형에 따라 처리된 URL을 분류
-        if (imgType === "option") {
-          awsOptionSrc.push(...processedUrls);
-        } else if (imgType === "detail") {
-          awsDetailSrc.push(...processedUrls);
-        }
-      } catch (error) {
-        console.error("Error processing images and deploying:", error);
       }
+
+      const processedUrls2 = await Promise.all(
+        imgUrlArray2.map((imgUrl) => processImage(imgUrl))
+      );
+
+      awsOptionSrc.push(...processedUrls);
+      awsDetailSrc.push(...processedUrls2);
     }
 
     async function getDetailImgSrc() {
@@ -443,14 +426,49 @@ async function generate(url, driver) {
       );
 
       for await ([i, detail] of detailImages.entries()) {
+        let $this = await driver.wait(detail.getAttribute("src"), 3000);
+
         if (i > 1) {
-          detailSrc.push(await detail.getAttribute("src"));
+          detailSrc.push($this);
         }
+      }
+
+      detailSrc.pop();
+    }
+
+    // AWS 클라우드프론트 주소
+    const cloudFrontBaseUrl = "https://d2cbw0xqrrkdri.cloudfront.net";
+
+    const cloudFrontAwsOptionSrc = awsOptionSrc.map((s3Url) => {
+      const fileName = s3Url.split("/").pop();
+      return `${cloudFrontBaseUrl}/${userId}/${fileName}`;
+    });
+
+    const cloudFrontAwsDetailSrc = awsDetailSrc.map((s3Url) => {
+      const fileName = s3Url.split("/").pop();
+      return `${cloudFrontBaseUrl}/${userId}/${fileName}`;
+    });
+
+    // html만들기
+    for await ([i, op] of cloudFrontAwsOptionSrc.entries()) {
+      try {
+        optionInnerHtml += `<div style=" display: inline-table; width: 50%; border: 1px solid #aaa; margin: 30px 0 0 0; box-sizing: border-box;"><img src="${op}" width="390"/><div style=" display: block; border-top: 1px solid #aaa; padding: 15px; font-size: 15pt; box-sizing: border-box;">${optionText[i]}</div></div>`;
+      } catch (error) {
+        console.error;
       }
     }
 
-    // console.log(`awsOptionSrc = ${awsOptionSrc}`);
-    // console.log(`awsDetailSrc = ${awsDetailSrc}`);
+    for await (detail of cloudFrontAwsDetailSrc) {
+      try {
+        detailInnerHtml += `<div><img src="${detail}" /></div>`;
+      } catch (error) {
+        console.error;
+      }
+    }
+
+    let detailHtml = `<div style="margin: 0 auto; width: 100%; text-align: center"><img src="https://dfua3zgxja7ca.cloudfront.net/common/option.jpg" /><div style="display: block; align-items: center; width: 100%; font-size: 0">${optionInnerHtml}</div><div style="text-align: center; margin-top: 30px">${detailInnerHtml}</div><div style="text-align: center; margin-top: 30px">${bottomInnerHtml}</div></div>`;
+
+    console.log(`detailHtml = ${detailHtml}`);
     // crawlData에 데이터 넣기
     crawlData.b = modelName;
     crawlData.c = brandName;
@@ -488,7 +506,8 @@ async function generate(url, driver) {
       ? (crawlData.ae = thumbArr[9])
       : (crawlData.ae = "");
     crawlData.ag = `${optionType}`;
-    // console.log(crawlData);
+    crawlData.aj = `${detailHtml}`;
+    console.log(crawlData);
   } catch (error) {
     console.error("에러:", error);
     throw new Error("이미지 가져오기에 실패했습니다.");
@@ -511,29 +530,7 @@ function sleep() {
   }
 }
 
-// // 이미지 다운로드
-// const imageResponse = await axios.get(thumbnailSrc, {
-//   responseType: "arraybuffer",
-//   httpsAgent: new https.Agent({ rejectUnauthorized: false }), // SSL 인증서 검증 건너뛰기
-// });
-
-// // 이미지를 파일로 저장하기
-// const filename = `${Date.now()}.png`; // 파일명을 현재 시간으로 설정
-// const imagePath = `temp/${filename}`; // 이미지가 저장될 경로
-// fs.writeFileSync(imagePath, Buffer.from(imageResponse.data));
-
-// const rootPath = appRoot.toString();
-
-// async function getImageURL() {
-//   // 이미지 요소 찾기
-//   let imageElement = await driver.findElement(By.css(".bd_2DO68"));
-
-//   const brandName = `꾸러미배송 협력사`;
-
-//   // 이미지 URL 가져오기
-//   // let imageURL = await imageElement.getAttribute("src");
-//   // 웹 드라이버 종료
-//   // await driver.quit();
-// }
+// uploads 폴더 초기화
+function resetUploadsFolder() {}
 
 module.exports = { generate };
